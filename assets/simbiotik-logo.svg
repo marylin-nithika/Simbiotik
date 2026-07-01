@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 130" role="img" aria-label="Simbiotik Solutions">
+  <defs>
+    <linearGradient id="topArc" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e4a8a"/>
+      <stop offset="100%" stop-color="#4a9fd4"/>
+    </linearGradient>
+    <linearGradient id="bottomArc" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e8eef5"/>
+      <stop offset="100%" stop-color="#8fa8bf"/>
+    </linearGradient>
+  </defs>
+  <path d="M28 78 C120 18, 300 18, 392 58" fill="none" stroke="url(#topArc)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M36 92 C150 118, 270 118, 384 82" fill="none" stroke="url(#bottomArc)" stroke-width="9" stroke-linecap="round"/>
+  <text x="210" y="68" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="42" font-weight="700" letter-spacing="1" fill="#3d8cc4">SIMBIOTIK</text>
+  <text x="318" y="86" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="600" letter-spacing="2.5" fill="#f8fafc">SOLUTIONS</text>
+</svg>
