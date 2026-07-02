@@ -15,21 +15,43 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    const user = await this.userModel.findOne({ email: dto.email.toLowerCase().trim() });
-    if (!user) throw new UnauthorizedException('Invalid email or password');
+    const email = dto.email.toLowerCase().trim();
+    const user = await this.userModel.findOne({ email });
 
-    const valid = await bcrypt.compare(dto.password, user.password);
-    if (!valid) throw new UnauthorizedException('Invalid email or password');
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const valid = await this.isPasswordValid(dto.password, user.password);
+    if (!valid) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
 
     const token = this.jwt.sign({
-      sub: user._id.toString(),
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      employeeId: user.employeeId,
-    });
+    sub: user._id.toString(),
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    employeeId: user.employeeId,
+  });
 
-    return { token, email: user.email, name: user.name, role: user.role, employeeId: user.employeeId };
+  return {
+    token,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    employeeId: user.employeeId,
+  };
+}
+
+  private async isPasswordValid(plainPassword: string, storedPassword: string) {
+    if (!storedPassword) return false;
+
+    if (storedPassword.startsWith('$2')) {
+      return bcrypt.compare(plainPassword, storedPassword);
+    }
+
+    return plainPassword === storedPassword;
   }
 
   async register(dto: RegisterDto) {
