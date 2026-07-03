@@ -8,6 +8,7 @@ import { extname, join } from 'path';
 import * as fs from 'fs';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { EmployeesService } from './employees.service';
 import { JwtAuthGuard } from '../common/jwt-auth.guard';
 import { RolesGuard } from '../common/roles.guard';
@@ -80,7 +81,7 @@ export class EmployeesController {
   }))
   @ApiOperation({ summary: 'Onboard new employee with documents (HR only)' })
   create(
-    @Body() body: Record<string, unknown>,
+    @Body() body: CreateEmployeeDto,
     @UploadedFiles() files?: { idDocuments?: Express.Multer.File[]; educationDocuments?: Express.Multer.File[] },
   ) {
     return this.employees.create(body, files?.idDocuments, files?.educationDocuments);

@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { SeedService } from './seed/seed.service';
 import { AuthModule } from './auth/auth.module';
 import { EmployeesModule } from './employees/employees.module';
+import { JwtAuthGuard } from './common/jwt-auth.guard';
 import { LeavesModule } from './leaves/leaves.module';
 import { JobsModule } from './jobs/jobs.module';
 import { CandidatesModule } from './candidates/candidates.module';
@@ -20,9 +21,24 @@ import { Performance, PerformanceSchema } from './performance/schemas/performanc
 import { Feedback, FeedbackSchema } from './performance/schemas/feedback.schema';
 import { Leave, LeaveSchema } from './leaves/schemas/leave.schema';
 
+const resolvedMongoUri = (() => {
+  const uri = (process.env.MONGODB_URI || '').trim();
+  if (!uri) {
+    return 'mongodb://127.0.0.1:27017/hrms-simbiotik';
+  }
+
+  const [base, query = ''] = uri.split('?');
+  if (/\/[^/?#]+$/.test(base)) {
+    return uri;
+  }
+
+  const suffix = query ? `/hrms-simbiotik?${query}` : '/hrms-simbiotik';
+  return `${base.replace(/\/$/, '')}${suffix}`;
+})();
+
 @Module({
   imports: [
-    MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/hrms-simbiotik'),
+    MongooseModule.forRoot(resolvedMongoUri),
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Employee.name, schema: EmployeeSchema },

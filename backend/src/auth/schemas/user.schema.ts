@@ -3,7 +3,12 @@ import { Document } from 'mongoose';
 
 @Schema({ timestamps: true, collection: 'users' })
 export class User extends Document {
-  @Prop({ required: true, unique: true, lowercase: true, trim: true })
+  @Prop({
+    required: true,
+    lowercase: true,
+    trim: true,
+    index: { unique: true, partialFilterExpression: { isActive: true } },
+  })
   email: string;
 
   @Prop({ required: true })
@@ -17,6 +22,9 @@ export class User extends Document {
 
   @Prop({ required: true })
   employeeId: string;
+
+  @Prop({ required: true, default: true })
+  isActive: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

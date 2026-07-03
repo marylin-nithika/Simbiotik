@@ -3,9 +3,15 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { EmployeesController } from './employees.controller';
 import { EmployeesService } from './employees.service';
 import { Employee, EmployeeSchema } from './schemas/employee.schema';
+import { User, UserSchema } from '../auth/schemas/user.schema';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Employee.name, schema: EmployeeSchema }])],
+  imports: [
+    MongooseModule.forFeature([
+      { name: Employee.name, schema: EmployeeSchema },
+      { name: User.name, schema: UserSchema },
+    ]),
+  ],
   controllers: [EmployeesController],
   providers: [EmployeesService],
   exports: [EmployeesService],
