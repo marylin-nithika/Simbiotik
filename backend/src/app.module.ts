@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { SeedService } from './seed/seed.service';
 import { AuthModule } from './auth/auth.module';
 import { EmployeesModule } from './employees/employees.module';
+import { JwtAuthGuard } from './common/jwt-auth.guard';
 import { LeavesModule } from './leaves/leaves.module';
 import { JobsModule } from './jobs/jobs.module';
 import { CandidatesModule } from './candidates/candidates.module';

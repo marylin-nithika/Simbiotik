@@ -101,24 +101,39 @@ export class DashboardService {
   }
 
   async getStats() {
-    const [employees, pendingLeaves, onLeave] = await Promise.all([
-      this.employeeModel.find({ status: 'Active' }).exec(),
+    const employees = await this.employeeModel.find().exec();
+    const totalEmployees = employees.length;
+    const today = new Date().toISOString().split('T')[0];
+    const employeeIds = new Set(
+      employees.map((employee) => String(employee.employeeId || '').toUpperCase().trim()).filter(Boolean),
+    );
+
+    const [pendingLeaves, onLeaveEmployeeIds] = await Promise.all([
       this.leaveModel.countDocuments({ status: 'Pending' }),
-      this.leaveModel.countDocuments({ status: 'Approved' }),
+      this.leaveModel.distinct('employeeId', {
+        status: 'Approved',
+        fromDate: { $lte: today },
+        toDate: { $gte: today },
+      }),
     ]);
 
-    const activeCount = employees.length;
+    const onLeave = onLeaveEmployeeIds
+      .map((employeeId) => String(employeeId || '').toUpperCase().trim())
+      .filter((employeeId) => employeeId && employeeIds.has(employeeId)).length;
+
+    const present = Math.max(0, totalEmployees - onLeave);
+    const absent = 0;
 
     return {
-      totalEmployees: activeCount,
+      totalEmployees,
       onLeave,
       leaveRequests: pendingLeaves,
       attendance: {
-        present: Math.round(activeCount * 0.9),
-        absent: Math.max(0, activeCount - Math.round(activeCount * 0.9) - onLeave),
+        present,
+        absent,
         onLeave,
       },
-      weeklyAttendance: this.getWeeklyAttendance(activeCount),
+      weeklyAttendance: this.getWeeklyAttendance(totalEmployees),
       upcomingBirthdays: this.getUpcomingBirthdays(employees),
       nextHoliday: this.getNextHoliday(),
     };

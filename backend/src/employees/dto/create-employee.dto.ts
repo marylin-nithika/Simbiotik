@@ -1,8 +1,57 @@
-import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, Matches } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  Matches,
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+function computeAge(dob?: string): number | null {
+  if (!dob) return null;
+  const date = new Date(dob);
+  if (Number.isNaN(date.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - date.getFullYear();
+  const monthDiff = today.getMonth() - date.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
+
+@ValidatorConstraint({ async: false })
+class IsAdultConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown) {
+    const age = computeAge(String(value || ''));
+    return age !== null && age >= 18;
+  }
+
+  defaultMessage(args: ValidationArguments) {
+    return 'Employee must be at least 18 years old to be onboarded.';
+  }
+}
+
+function IsAdult(validationOptions?: ValidationOptions) {
+  return function (object: object, propertyName: string) {
+    registerDecorator({
+      target: object.constructor,
+      propertyName,
+      options: validationOptions,
+      validator: IsAdultConstraint,
+    });
+  };
+}
+
 export class CreateEmployeeDto {
-  @ApiProperty({ example: 'SG00008' })
+  @ApiProperty({ example: 'SG008' })
   @IsNotEmpty()
   @Matches(/^SG00[A-Za-z0-9]+$/, { message: 'Employee ID must start with SG00' })
   employeeId: string;
@@ -53,7 +102,7 @@ export class CreateEmployeeDto {
   uan?: string;
 
   @ApiPropertyOptional() @IsOptional() pfNo?: string;
-  @ApiPropertyOptional() @IsOptional() dob?: string;
+  @ApiProperty() @IsNotEmpty() @IsDateString() @IsAdult() dob: string;
   @ApiProperty() @IsNotEmpty() joinDate: string;
   @ApiPropertyOptional() @IsOptional() username?: string;
   @ApiPropertyOptional() @IsOptional() supervisor?: string;
@@ -63,14 +112,22 @@ export class CreateEmployeeDto {
   @ApiPropertyOptional() @IsOptional() experience?: Record<string, string>[];
   @ApiPropertyOptional() @IsOptional() passport?: Record<string, string>;
   @ApiPropertyOptional() @IsOptional() asset?: string;
+  @ApiPropertyOptional() @IsOptional() status?: string;
+  @ApiPropertyOptional() @IsOptional() bankDetails?: {
+    bankName?: string;
+    accountNumber?: string;
+    ifscCode?: string;
+  };
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   bgv: boolean = false;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   insurance: boolean = false;
 }

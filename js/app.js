@@ -80,6 +80,33 @@ const App = (() => {
     return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   }
 
+  function findEmployeeConflict(fields, excludeId) {
+    const employees = Store.getEmployees();
+    const normalized = {
+      employeeId: fields.employeeId?.toUpperCase?.()?.trim(),
+      email: fields.email?.toLowerCase?.()?.trim(),
+      officeMail: fields.officeMail?.toLowerCase?.()?.trim(),
+      pan: fields.pan?.toUpperCase?.()?.trim(),
+      mobile: fields.mobile?.trim(),
+      aadhaar: fields.aadhaar?.trim(),
+      passportNumber: fields.passportNumber?.trim(),
+      bankAccount: fields.bankAccount?.trim(),
+    };
+
+    for (const emp of employees) {
+      if (excludeId && emp.id === excludeId) continue;
+      if (normalized.employeeId && emp.employeeId?.toUpperCase?.()?.trim() === normalized.employeeId) return 'Employee ID already exists';
+      if (normalized.email && emp.email?.toLowerCase?.()?.trim() === normalized.email) return 'Personal email already exists';
+      if (normalized.officeMail && emp.officeMail?.toLowerCase?.()?.trim() === normalized.officeMail && emp.status !== 'Inactive') return 'Office mail already exists';
+      if (normalized.mobile && emp.mobile === normalized.mobile) return 'Mobile number already exists';
+      if (normalized.aadhaar && emp.aadhaar === normalized.aadhaar) return 'Aadhaar number already exists';
+      if (normalized.pan && emp.pan?.toUpperCase?.()?.trim() === normalized.pan) return 'PAN number already exists';
+      if (normalized.passportNumber && emp.passport?.number === normalized.passportNumber) return 'Passport number already exists';
+      if (normalized.bankAccount && emp.bankDetails?.accountNumber === normalized.bankAccount) return 'Bank account number already exists';
+    }
+    return null;
+  }
+
   async function downloadWithAuth(url, filename) {
     try {
       const res = await fetch(url, { headers: API.authHeader() });
@@ -740,7 +767,7 @@ const App = (() => {
       Validators.required(get('ob-employeeType'), 'Employee Type'),
       !department ? 'Department is required' : null,
       Validators.required(get('ob-designation'), 'Designation'),
-      Validators.required(get('ob-dob'), 'Date of Birth'),
+      Validators.age(get('ob-dob'), 'Date of Birth'),
 
       // Contact Details
       !mobile ? 'Mobile number is required' : (!indianMobileRegex.test(mobile) ? 'Mobile must be a 10-digit Indian number' : null),
@@ -815,6 +842,22 @@ const App = (() => {
       role: row.querySelector('.exp-role')?.value.trim() || '',
       duration: row.querySelector('.exp-duration')?.value.trim() || ''
     })).filter(e => e.company && e.role && e.duration);
+
+    const duplicateError = findEmployeeConflict({
+      employeeId,
+      email: personalEmail,
+      officeMail,
+      mobile,
+      emergencyMobile,
+      aadhaar,
+      pan,
+      passportNumber: get('ob-passportNo'),
+      bankAccount: accNum
+    });
+    if (duplicateError) {
+      toast(duplicateError, 'error');
+      return;
+    }
 
     const emp = {
       employeeId: get('ob-employeeId').toUpperCase(),
@@ -1163,7 +1206,7 @@ const App = (() => {
       !employeeType ? 'Employee Type is required' : null,
       !department ? 'Department is required' : null,
       !designation ? 'Designation is required' : null,
-      !dob ? 'Date of Birth is required' : null,
+      Validators.age(get('ed-dob'), 'Date of Birth'),
 
       // Contact
       !mobile ? 'Mobile is required' : (!indianMobileRegex.test(mobile) ? 'Invalid Mobile' : null),
@@ -1221,6 +1264,21 @@ const App = (() => {
       role: row.querySelector('.exp-role')?.value.trim() || '',
       duration: row.querySelector('.exp-duration')?.value.trim() || ''
     })).filter(e => e.company && e.role && e.duration);
+
+    const duplicateError = findEmployeeConflict({
+      email: personalEmail,
+      officeMail,
+      mobile,
+      emergencyMobile,
+      aadhaar,
+      pan,
+      passportNumber: get('ed-passportNo'),
+      bankAccount: get('ed-accNum')
+    }, employeeId);
+    if (duplicateError) {
+      toast(duplicateError, 'error');
+      return;
+    }
 
     const emp = {
       name: get('ed-name'),

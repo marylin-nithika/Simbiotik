@@ -17,6 +17,27 @@ const Validators = (() => {
     return null;
   }
 
+  function calculateAge(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - date.getFullYear();
+    const monthDiff = today.getMonth() - date.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < date.getDate())) {
+      age -= 1;
+    }
+    return age;
+  }
+
+  function age(value, label, minAge = 18) {
+    if (!value?.trim()) return `${label} is required`;
+    const ageValue = calculateAge(value);
+    if (ageValue === null) return `Invalid ${label}`;
+    if (ageValue < minAge) return 'Employee must be at least 18 years old to be onboarded.';
+    return null;
+  }
+
   return {
     employeeId: (v) => test(patterns.employeeId, v, 'Employee ID (format: SG00xxx)'),
     officeMail: (v) => test(patterns.officeMail, v, 'Office Mail (@simbiotiktech.com)'),
@@ -33,6 +54,8 @@ const Validators = (() => {
     mobile: (v) => test(patterns.mobile, v.replace(/\s/g, ''), 'Mobile Number'),
     bankAccount: (v) => test(patterns.bankAccount, v.replace(/\s/g, ''), 'Account Number'),
     ifsc: (v) => test(patterns.ifsc, v.toUpperCase(), 'IFSC Code'),
+    age,
+    calculateAge,
     required: (v, label) => (!v?.trim() ? `${label} is required` : null)
   };
 })();

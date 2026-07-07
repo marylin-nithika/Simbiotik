@@ -32,6 +32,7 @@ export class Employee extends Document {
   @Prop({ type: Array }) experience: Record<string, string>[];
   @Prop({ type: Object }) passport: Record<string, string>;
   @Prop() asset: string;
+  @Prop({ type: Object }) bankDetails: { bankName?: string; accountNumber?: string; ifscCode?: string };
   @Prop({ type: [{ path: String, name: String }], default: [] }) idDocuments: { path: string; name: string }[];
   @Prop({ type: [{ path: String, name: String }], default: [] }) educationDocuments: { path: string; name: string }[];
   @Prop({ default: false }) bgv: boolean;
