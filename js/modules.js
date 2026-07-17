@@ -2,47 +2,59 @@ const Modules = (() => {
   const icons = {
     dashboard: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
     leave: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    timesheet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="15" x2="8" y2="19"/><line x1="12" y1="15" x2="12" y2="19"/><line x1="16" y1="15" x2="16" y2="19"/></svg>',
     employees: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     recruitment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>',
     payroll: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
     performance: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+    grievance: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>',
     reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>'
   };
 
   const ROLE_NAV = {
     admin: [
       { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'timesheet', label: 'Timesheet', icon: 'timesheet' },
       { id: 'employees', label: 'Employees', icon: 'employees' },
       { id: 'leave', label: 'Leave Request', icon: 'leave' },
       { id: 'recruitment', label: 'Recruitment', icon: 'recruitment' },
+      { id: 'grievance', label: 'Grievance', icon: 'grievance' },
       { id: 'payroll', label: 'Payroll', icon: 'payroll' },
       { id: 'performance', label: 'Performance', icon: 'performance' },
       { id: 'reports', label: 'Reports', icon: 'reports' }
     ],
     hr_manager: [
       { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'timesheet', label: 'Timesheet', icon: 'timesheet' },
       { id: 'employees', label: 'Employees', icon: 'employees' },
       { id: 'leave', label: 'Leave Request', icon: 'leave' },
       { id: 'recruitment', label: 'Recruitment', icon: 'recruitment' },
+      { id: 'grievance', label: 'Grievance', icon: 'grievance' },
       { id: 'payroll', label: 'Payroll', icon: 'payroll' },
       { id: 'performance', label: 'Performance', icon: 'performance' }
     ],
     employee: [
       { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'timesheet', label: 'Timesheet', icon: 'timesheet' },
       { id: 'leave', label: 'Leave Request', icon: 'leave' },
       { id: 'recruitment', label: 'Recruitment', icon: 'recruitment' },
+      { id: 'grievance', label: 'Grievance', icon: 'grievance' },
       { id: 'payroll', label: 'Payroll', icon: 'payroll' }
     ],
     project_manager: [
       { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'timesheet', label: 'Timesheet', icon: 'timesheet' },
       { id: 'leave', label: 'Leave Request', icon: 'leave' },
       { id: 'recruitment', label: 'Recruitment', icon: 'recruitment' },
+      { id: 'grievance', label: 'Grievance', icon: 'grievance' },
       { id: 'payroll', label: 'Payroll', icon: 'payroll' }
     ],
     reporting_manager: [
       { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { id: 'timesheet', label: 'Timesheet', icon: 'timesheet' },
       { id: 'leave', label: 'Leave Request', icon: 'leave' },
       { id: 'recruitment', label: 'Recruitment', icon: 'recruitment' },
+      { id: 'grievance', label: 'Grievance', icon: 'grievance' },
       { id: 'payroll', label: 'Payroll', icon: 'payroll' },
       { id: 'performance', label: 'Performance', icon: 'performance' }
     ],
@@ -59,14 +71,21 @@ const Modules = (() => {
     'recruitment.pipeline': ['admin', 'hr_manager'],
     'recruitment.post': ['admin', 'hr_manager'],
     'recruitment.refer': ['admin', 'hr_manager', 'employee', 'project_manager', 'reporting_manager'],
-    'employees.onboard': ['hr_manager'],
-    'employees.view': ['admin', 'hr_manager', 'ca'],
-    'employees.edit': ['admin', 'hr_manager'],
-    'performance.manage': ['admin', 'hr_manager', 'reporting_manager']
+    'employees.onboard': ['hr_manager', 'hr'],
+    'employees.view': ['admin', 'hr_manager', 'hr', 'ca'],
+    'employees.edit': ['admin', 'hr_manager', 'hr'],
+    'performance.manage': ['admin', 'hr_manager', 'hr', 'reporting_manager'],
+    'grievance.manage': ['admin', 'hr_manager', 'hr']
   };
 
   function effectiveRole(role) {
-    return (role || '').toLowerCase() === 'manager' ? 'reporting_manager' : (role || '').toLowerCase();
+    const raw = String(role || '').trim().toLowerCase();
+    const normalized = raw.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (['manager', 'reporting_manager', 'reporting-manager', 'reporting manager'].includes(normalized)) return 'reporting_manager';
+    if (['project_manager', 'project-manager', 'project manager'].includes(normalized)) return 'project_manager';
+    if (['hr', 'hr_manager', 'hr-manager', 'hr manager', 'human_resource', 'human_resources', 'human-resource', 'human-resources'].includes(normalized)) return 'hr_manager';
+    if (['ca', 'chartered_accountant'].includes(normalized)) return 'ca';
+    return normalized;
   }
 
   function canAccess(user, feature) {
@@ -216,6 +235,293 @@ const Modules = (() => {
         : 'pending';
       return `<div class="approval-box ${cls}"><span class="approval-label">${s.label}</span><span class="approval-status">${st}</span></div>`;
     }).join('')}</div>`;
+  }
+
+  function renderTimesheet(user, subPage) {
+    const role = effectiveRole(user.role);
+    
+    // For HR and Admin, show all timesheets view
+    if (role === 'hr_manager' || role === 'admin') {
+      if (subPage === 'personal') {
+        return `<div style="margin-bottom: 1rem;"><button class="btn btn-secondary btn-sm" data-timesheet-view="overview" type="button">Back to Employee Overview</button></div>${renderTimesheetPersonal(user)}`;
+      }
+      return renderTimesheetManagement(user);
+    }
+    
+    // For reporting managers, show personal + team view
+    if (role === 'reporting_manager') {
+      return renderTimesheetPersonalAndTeam(user, subPage);
+    }
+    
+    // For others, show personal timesheet
+    return renderTimesheetPersonal(user);
+  }
+
+  function renderTimesheetPersonal(user) {
+    const today = new Date().toISOString().split('T')[0];
+    const timesheet = Store.getTimesheet();
+    const history = Store.getTimesheetHistory();
+    
+    if (!timesheet) {
+      const error = Store.getTimesheetError();
+      return `<div class="panel"><div class="panel-body"><p class="form-hint">${error ? `Unable to load timesheet: ${error}` : 'Loading timesheet...'}</p></div></div>`;
+    }
+
+    const statusColor = {
+      'Not Punched In': 'badge-pending',
+      'Working': 'badge-processing',
+      'Punch Out Missing': 'badge-warning',
+      'Punched Out': 'badge-secondary',
+      'Submitted': 'badge-approved'
+    };
+
+    const formatTime = (t) => t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
+    const formatDuration = (ms) => {
+      if (!ms) return '0h';
+      const hours = Math.floor(ms / 3600);
+      const minutes = Math.floor((ms % 3600) / 60);
+      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    };
+
+    const punchedInDuration = timesheet.punchedInDuration || 0;
+    const totalActivityHours = timesheet.totalActivityHours || 0;
+    const canPunchIn = timesheet.status === 'Not Punched In';
+    const canPunchOut = timesheet.status === 'Working';
+    const canAddActivity = timesheet.status === 'Working' || timesheet.status === 'Punched Out';
+    const canSubmit = timesheet.status === 'Punched Out' && !timesheet.submitted;
+    const isSubmitted = timesheet.submitted;
+
+    let html = `
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Today's Timesheet</h3>
+            <p class="form-hint">${today}</p>
+          </div>
+          <span class="badge ${statusColor[timesheet.status] || 'badge-secondary'}">${timesheet.status}</span>
+        </div>
+        <div class="panel-body">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+              <p class="form-hint">Punch In</p>
+              <p style="font-size: 1.1rem; font-weight: 500;">${formatTime(timesheet.punchInTime)}</p>
+              ${!isSubmitted ? `<button class="btn btn-primary btn-sm" id="btn-punch-in" type="button" ${!canPunchIn ? 'disabled' : ''}>Punch In</button>` : ''}
+            </div>
+            <div>
+              <p class="form-hint">Punch Out</p>
+              <p style="font-size: 1.1rem; font-weight: 500;">${formatTime(timesheet.punchOutTime)}</p>
+              ${!isSubmitted ? `<button class="btn btn-secondary btn-sm" id="btn-punch-out" type="button" ${!canPunchOut ? 'disabled' : ''}>Punch Out</button>` : ''}
+            </div>
+          </div>
+
+          <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.375rem; margin-bottom: 1.5rem;">
+            <p class="form-hint">Total Punched-In Duration</p>
+            <p style="font-size: 1.25rem; font-weight: 600;">${formatDuration(punchedInDuration * 3600)}</p>
+          </div>
+
+          <div style="margin-bottom: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h4 style="margin: 0;">Daily Activities</h4>
+              ${!isSubmitted ? `<button class="btn btn-secondary btn-sm" id="btn-add-activity" type="button" ${!canAddActivity ? 'disabled' : ''}>+ Add Activity</button>` : ''}
+            </div>
+
+            ${timesheet.activities && timesheet.activities.length > 0 ? `
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Activity</th>
+                      <th>Duration</th>
+                      ${!isSubmitted ? '<th style="width: 120px;">Actions</th>' : ''}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${timesheet.activities.map((act, idx) => `
+                      <tr>
+                        <td>${act.activity}</td>
+                        <td>${act.duration}h</td>
+                        ${!isSubmitted ? `
+                          <td class="table-actions">
+                            <button class="btn btn-secondary btn-xs" data-edit-activity="${idx}" type="button">Edit</button>
+                            <button class="btn btn-secondary btn-xs" data-delete-activity="${idx}" type="button">Delete</button>
+                          </td>
+                        ` : ''}
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : '<p class="form-hint">No activities recorded yet.</p>'}
+
+            <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.375rem; margin-top: 1rem;">
+              <p class="form-hint">Total Activity Hours</p>
+              <p style="font-size: 1.25rem; font-weight: 600;">${totalActivityHours}h</p>
+            </div>
+          </div>
+
+          ${canSubmit ? `
+            <button class="btn btn-primary" id="btn-submit-timesheet" type="button" style="width: 100%; margin-top: 1rem;">Submit Timesheet</button>
+          ` : ''}
+          ${isSubmitted ? `
+            <p class="form-hint" style="text-align: center; margin-top: 1rem;">✓ This timesheet has been submitted and is now read-only.</p>
+          ` : ''}
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top: 2rem;">
+        <div class="panel-header">
+          <h3>Timesheet History</h3>
+        </div>
+        <div class="panel-body">
+          ${history && history.length > 0 ? `
+            <div class="table-responsive">
+              <table class="table timesheet-overview-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Punch In</th>
+                    <th>Punch Out</th>
+                    <th>Duration</th>
+                    <th>Activities</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${history.slice(0, 20).map(ts => `
+                    <tr>
+                      <td>${ts.date}</td>
+                      <td><span class="badge ${statusColor[ts.status] || 'badge-secondary'}">${ts.status}</span></td>
+                      <td>${formatTime(ts.punchInTime)}</td>
+                      <td>${formatTime(ts.punchOutTime)}</td>
+                      <td>${ts.punchedInDuration ? formatDuration(ts.punchedInDuration * 3600) : '—'}</td>
+                      <td>${ts.totalActivityHours || 0}h</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : '<p class="form-hint">No previous timesheets.</p>'}
+        </div>
+      </div>
+    `;
+
+    return html;
+  }
+
+  function renderTimesheetPersonalAndTeam(user, subPage = 'personal') {
+    
+    if (subPage === 'team') {
+      return `<div style="margin-bottom: 1rem;"><button class="btn btn-secondary btn-sm" data-timesheet-view="personal" type="button">My Timesheet</button></div>${renderTeamTimesheets(user)}`;
+    }
+    
+    return `<div style="margin-bottom: 1rem;"><button class="btn btn-secondary btn-sm" data-timesheet-view="team" type="button">Team Timesheets</button></div>${renderTimesheetPersonal(user)}`;
+  }
+
+  function renderTeamTimesheets(user) {
+    const teamTimesheets = Store.getTeamTimesheets() || [];
+    const today = new Date().toISOString().split('T')[0];
+
+    const statusColor = {
+      'Not Punched In': 'badge-pending',
+      'Working': 'badge-processing',
+      'Punch Out Missing': 'badge-warning',
+      'Punched Out': 'badge-secondary',
+      'Submitted': 'badge-approved'
+    };
+
+    return `
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Team Timesheets</h3>
+            <p class="form-hint">${today}</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          ${teamTimesheets && teamTimesheets.length > 0 ? `
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>Today's Submission Status</th>
+                    <th>Total Activity Hours</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${teamTimesheets.map(ts => `
+                    <tr>
+                      <td>${ts.employeeName || 'Unknown'}</td>
+                      <td><span class="badge ${statusColor[ts.status] || 'badge-secondary'}">${ts.status}</span></td>
+                      <td>${ts.submitted ? (ts.totalActivityHours || 0) + 'h' : '—'}</td>
+                      <td class="table-actions">
+                        ${ts.submitted ? `<button class="btn btn-secondary btn-sm" data-view-team-timesheet="${ts.employeeId}" type="button">View</button>` : '<span class="form-hint">Not submitted</span>'}
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : '<p class="form-hint">No team timesheets available.</p>'}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTimesheetManagement(user) {
+    const allTimesheets = Store.getAllTimesheets() || [];
+    const today = new Date().toISOString().split('T')[0];
+
+    const statusColor = {
+      'Not Punched In': 'badge-pending',
+      'Working': 'badge-processing',
+      'Punch Out Missing': 'badge-warning',
+      'Punched Out': 'badge-secondary',
+      'Submitted': 'badge-approved'
+    };
+
+    return `
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <h3>Timesheet Management - Employee Overview</h3>
+            <p class="form-hint">${today}</p>
+          </div>
+          <div>
+            <input type="text" id="search-employee-ts" placeholder="Search employee..." class="form-input" style="width: 200px;" />
+          </div>
+        </div>
+        <div class="panel-body">
+          ${allTimesheets && allTimesheets.length > 0 ? `
+            <div class="table-responsive">
+              <table class="data-table timesheet-overview-table">
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>Department</th>
+                    <th>Today's Timesheet Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="timesheet-management-table">
+                  ${allTimesheets.map(ts => `
+                    <tr>
+                      <td>${ts.employeeName || 'Unknown'}</td>
+                      <td>${ts.department || '—'}</td>
+                      <td><span class="badge ${statusColor[ts.status] || 'badge-secondary'}">${ts.status}</span></td>
+                      <td class="table-actions">
+                        <button class="btn btn-secondary btn-sm" data-view-employee-timesheet-history="${ts.employeeId}" type="button">History</button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : '<p class="form-hint">No timesheets available.</p>'}
+        </div>
+      </div>
+    `;
   }
 
   function renderSubTabs(page, user, subPage) {
@@ -591,6 +897,50 @@ const Modules = (() => {
       </div>`;
   }
 
+  function renderGrievance(user) {
+    const role = effectiveRole(user.role);
+    const isHr = canAccess(user, 'grievance.manage');
+    const grievances = isHr ? Store.getGrievances() : Store.getGrievances().filter(g => Store.sameEmployeeId(g.employeeId, user.employeeId));
+
+    return `
+      <div class="panel">
+        <div class="panel-header">
+          <h3>${isHr ? 'Grievance Management' : 'My Grievances'}</h3>
+          ${!isHr ? '<button class="btn btn-primary btn-sm" id="btn-raise-grievance" type="button">+ Raise Grievance</button>' : ''}
+        </div>
+        <div class="panel-body" style="padding:0">
+          <table class="data-table">
+            <thead><tr>
+              <th>Grievance ID</th>
+              ${isHr ? '<th>Employee</th>' : ''}
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Submitted Date</th>
+              <th>Action</th>
+            </tr></thead>
+            <tbody>
+              ${grievances.length === 0 ? `<tr><td colspan="${isHr ? 7 : 6}" style="text-align:center;padding:2rem;color:var(--text-muted)">${isHr ? 'No grievances submitted.' : 'You have not raised any grievance yet.'}</td></tr>` : grievances.map(g => {
+                const grievanceId = g.id || g._id;
+                const displayNumber = g.grievanceNumber || grievanceId;
+                return `
+                <tr>
+                  <td><strong>${displayNumber || '—'}</strong></td>
+                  ${isHr ? `<td>${g.employeeName || g.employeeId || '—'}</td>` : ''}
+                  <td>${g.category}</td>
+                  <td><span class="badge ${g.priority === 'Critical' ? 'badge-rejected' : g.priority === 'High' ? 'badge-pending' : 'badge-approved'}">${g.priority}</span></td>
+                  <td><span class="badge ${g.status === 'Resolved' || g.status === 'Closed' ? 'badge-approved' : g.status === 'Submitted' ? 'badge-pending' : 'badge-rejected'}">${g.status}</span></td>
+                  <td>${formatDate(g.createdAt || g.submittedOn)}</td>
+                  <td><button class="btn btn-secondary btn-sm" data-view-grievance="${grievanceId || ''}" type="button">View</button></td>
+                </tr>
+              `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
   function renderRecruitment(user, subPage) {
     if (subPage === 'pipeline') {
       if (!canAccess(user, 'recruitment.pipeline')) {
@@ -856,6 +1206,8 @@ const Modules = (() => {
     leave: 'Leave Request',
     employees: 'Employees',
     recruitment: 'Recruitment',
+    grievance: 'Grievance Management',
+    timesheet: 'Timesheet',
     payroll: 'Payroll',
     performance: 'Performance',
     reports: 'Reports & Analytics'
@@ -879,6 +1231,8 @@ const Modules = (() => {
       case 'leave': content = renderLeave(user, sp); break;
       case 'employees': content = renderEmployees(user); break;
       case 'recruitment': content = renderRecruitment(user, sp); break;
+      case 'grievance': content = renderGrievance(user); break;
+      case 'timesheet': content = renderTimesheet(user, sp); break;
       case 'payroll': content = renderPayroll(user, sp); break;
       case 'performance': content = renderPerformance(user); break;
       case 'reports': content = renderReports(); break;

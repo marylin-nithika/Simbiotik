@@ -80,6 +80,13 @@ const API = (() => {
     createPayroll: (data) => request('POST', '/payroll', data, data instanceof FormData),
     getPayslipUrl: (id) => `${BASE}/payroll/${id}/payslip`,
 
+    getGrievances: () => request('GET', '/grievances'),
+    getMyGrievances: () => request('GET', '/grievances/mine'),
+    createGrievance: (formData) => request('POST', '/grievances', formData, true, true),
+    getGrievance: (id) => request('GET', `/grievances/${id}`),
+    updateGrievanceStatus: (id, data) => request('PATCH', `/grievances/${id}/status`, data, false, true),
+    updateGrievanceNotes: (id, data) => request('PATCH', `/grievances/${id}/notes`, data, false, true),
+
     getTaxForms: () => request('GET', '/payroll/tax-forms'),
     uploadTaxForm: (formData) => request('POST', '/payroll/tax-forms', formData, true, true),
     getTaxFormDownloadUrl: (id) => `${BASE}/payroll/tax-forms/${id}/download`,
@@ -100,6 +107,29 @@ const API = (() => {
         const r = await fetch(`${BASE}/health`, { method: 'GET' });
         return r.ok;
       } catch { return false; }
-    }
+    },
+
+    getTodayTimesheet: () => request('GET', '/timesheets/today', null, false, true),
+    checkMissedPunchOut: () => request('GET', '/timesheets/missed-punch-out'),
+    punchIn: () => request('POST', '/timesheets/punch-in'),
+    punchOut: () => request('POST', '/timesheets/punch-out'),
+    addActivity: (data) => request('POST', '/timesheets/activities', data),
+    editActivity: (index, data) => request('PATCH', `/timesheets/activities/${index}`, data),
+    deleteActivity: (index) => request('PATCH', `/timesheets/activities/${index}/delete`, {}),
+    resolveMissedPunchOut: (timesheetId, data) => request('PATCH', `/timesheets/resolve-missed-punch-out/${timesheetId}`, data),
+    submitTimesheet: () => request('POST', '/timesheets/submit'),
+    getTimesheetHistory: (limit) => request('GET', `/timesheets/history${limit ? `?limit=${limit}` : ''}`),
+    getTeamTimesheets: () => request('GET', '/timesheets/team'),
+    getTeamTimesheetDetail: (employeeId, date) => request('GET', `/timesheets/team/${employeeId}/${date}`),
+    getEmployeeTimesheetHistory: (employeeId, fromDate, toDate, page, limit) => {
+      const params = new URLSearchParams();
+      if (fromDate) params.append('fromDate', fromDate);
+      if (toDate) params.append('toDate', toDate);
+      if (page) params.append('page', page);
+      if (limit) params.append('limit', limit);
+      const query = params.toString();
+      return request('GET', `/timesheets/manage/employee/${employeeId}${query ? `?${query}` : ''}`);
+    },
+    getEmployeeTimesheetDetail: (employeeId, date) => request('GET', `/timesheets/manage/employee/${employeeId}/${date}`),
   };
 })();

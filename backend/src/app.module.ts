@@ -12,6 +12,8 @@ import { CandidatesModule } from './candidates/candidates.module';
 import { PayrollModule } from './payroll/payroll.module';
 import { PerformanceModule } from './performance/performance.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { GrievancesModule } from './grievances/grievances.module';
+import { TimesheetsModule } from './timesheets/timesheets.module';
 import { User, UserSchema } from './auth/schemas/user.schema';
 import { Employee, EmployeeSchema } from './employees/schemas/employee.schema';
 import { Job, JobSchema } from './jobs/schemas/job.schema';
@@ -20,6 +22,8 @@ import { Payroll, PayrollSchema } from './payroll/schemas/payroll.schema';
 import { Performance, PerformanceSchema } from './performance/schemas/performance.schema';
 import { Feedback, FeedbackSchema } from './performance/schemas/feedback.schema';
 import { Leave, LeaveSchema } from './leaves/schemas/leave.schema';
+import { Grievance, GrievanceSchema } from './grievances/schemas/grievance.schema';
+import { Timesheet, TimesheetSchema } from './timesheets/schemas/timesheet.schema';
 
 const resolvedMongoUri = (() => {
   const uri = (process.env.MONGODB_URI || '').trim();
@@ -48,6 +52,8 @@ const resolvedMongoUri = (() => {
       { name: Performance.name, schema: PerformanceSchema },
       { name: Feedback.name, schema: FeedbackSchema },
       { name: Leave.name, schema: LeaveSchema },
+      { name: Grievance.name, schema: GrievanceSchema },
+      { name: Timesheet.name, schema: TimesheetSchema },
     ]),
     JwtModule.register({
       global: true,
@@ -62,6 +68,8 @@ const resolvedMongoUri = (() => {
     PayrollModule,
     PerformanceModule,
     DashboardModule,
+    GrievancesModule,
+    TimesheetsModule,
   ],
   controllers: [AppController],
   providers: [SeedService],

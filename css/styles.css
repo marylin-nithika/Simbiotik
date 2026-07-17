@@ -475,6 +475,17 @@ body {
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: var(--surface-2); }
 
+.timesheet-overview-table {
+  min-width: 680px;
+  table-layout: fixed;
+}
+
+.timesheet-overview-table th:nth-child(1) { width: 30%; }
+.timesheet-overview-table th:nth-child(2) { width: 25%; }
+.timesheet-overview-table th:nth-child(3) { width: 28%; }
+.timesheet-overview-table th:nth-child(4) { width: 17%; }
+.timesheet-overview-table .table-actions { justify-content: flex-end; }
+
 .badge {
   display: inline-flex;
   align-items: center;

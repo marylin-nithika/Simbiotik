@@ -6,12 +6,18 @@ const Store = (() => {
     jobs: 'hrms_jobs',
     candidates: 'hrms_candidates',
     payrolls: 'hrms_payrolls',
+    grievances: 'hrms_grievances',
     performance: 'hrms_performance',
     taxForms: 'hrms_tax_forms',
     perfTemplates: 'hrms_perf_templates',
     feedbacks: 'hrms_feedbacks',
     attendance: 'hrms_attendance',
-    dashboard: 'hrms_dashboard'
+    dashboard: 'hrms_dashboard',
+    timesheet: 'hrms_timesheet',
+    timesheetError: 'hrms_timesheet_error',
+    timesheetHistory: 'hrms_timesheet_history',
+    teamTimesheets: 'hrms_team_timesheets',
+    allTimesheets: 'hrms_all_timesheets'
   };
 
   const APPROVAL_STEPS = [
@@ -204,6 +210,22 @@ const Store = (() => {
   function getPayrolls() { return load(KEYS.payrolls, []); }
   function setPayrolls(data) { save(KEYS.payrolls, data); }
 
+  function normalizeGrievance(grievance) {
+    if (!grievance) return grievance;
+    const id = grievance.id || grievance._id || grievance.grievanceId;
+    return {
+      ...grievance,
+      id: id ? String(id) : undefined,
+      _id: grievance._id || (id ? String(id) : undefined)
+    };
+  }
+
+  function getGrievances() { return (load(KEYS.grievances, []) || []).map(normalizeGrievance); }
+  function setGrievances(data) { save(KEYS.grievances, (Array.isArray(data) ? data : []).map(normalizeGrievance)); }
+  function addGrievance(grievance) { const list = getGrievances(); list.unshift(normalizeGrievance(grievance)); save(KEYS.grievances, list); }
+  function updateGrievance(id, updates) { save(KEYS.grievances, getGrievances().map(g => (g.id === id || g._id === id) ? normalizeGrievance({ ...g, ...updates }) : g)); }
+  function getGrievanceById(id) { return getGrievances().find(g => g.id === id || g._id === id); }
+
   function getTaxForms() { return load(KEYS.taxForms, []); }
   function setTaxForms(data) { save(KEYS.taxForms, data); }
 
@@ -218,6 +240,17 @@ const Store = (() => {
 
   function getFeedbacks() { return load(KEYS.feedbacks, []); }
   function setFeedbacks(data) { save(KEYS.feedbacks, data); }
+
+  function getTimesheet() { return load(KEYS.timesheet, null); }
+  function setTimesheet(data) { save(KEYS.timesheet, data); }
+  function getTimesheetError() { return load(KEYS.timesheetError, ''); }
+  function setTimesheetError(message) { save(KEYS.timesheetError, message || ''); }
+  function getTimesheetHistory() { return load(KEYS.timesheetHistory, []); }
+  function setTimesheetHistory(data) { save(KEYS.timesheetHistory, data); }
+  function getTeamTimesheets() { return load(KEYS.teamTimesheets, []); }
+  function setTeamTimesheets(data) { save(KEYS.teamTimesheets, data); }
+  function getAllTimesheets() { return load(KEYS.allTimesheets, []); }
+  function setAllTimesheets(data) { save(KEYS.allTimesheets, data); }
 
   function getAttendance() { return load(KEYS.attendance, { present: 0, absent: 0, onLeave: 0 }); }
 
@@ -254,9 +287,11 @@ const Store = (() => {
     getJobs, setJobs, addJob,
     getCandidates, setCandidates, addCandidate,
     getPayrolls, setPayrolls,
+    getGrievances, setGrievances, addGrievance, updateGrievance, getGrievanceById,
     getTaxForms, setTaxForms,
     getPerformance, setPerformance, addPerformance, getPerfTemplates, setPerfTemplates,
     getFeedbacks, setFeedbacks,
+    getTimesheet, setTimesheet, getTimesheetError, setTimesheetError, getTimesheetHistory, setTimesheetHistory, getTeamTimesheets, setTeamTimesheets, getAllTimesheets, setAllTimesheets,
     getAttendance, getDashboard, setDashboard, computeLeaveBalance, uid
   };
 })();

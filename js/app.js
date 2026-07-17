@@ -41,7 +41,13 @@ const App = (() => {
   }
 
   function normalizeRole(role) {
-    return role === 'manager' ? 'reporting_manager' : role;
+    const raw = String(role || '').trim().toLowerCase();
+    const normalized = raw.replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    if (['manager', 'reporting_manager', 'reporting-manager', 'reporting_manager'].includes(normalized)) return 'reporting_manager';
+    if (['project_manager', 'project-manager', 'project manager'].includes(normalized)) return 'project_manager';
+    if (['hr', 'hr_manager', 'hr-manager', 'hr_manager', 'human_resource', 'human_resources', 'human-resource', 'human-resources'].includes(normalized)) return 'hr_manager';
+    if (['ca', 'chartered_accountant'].includes(normalized)) return 'ca';
+    return normalized;
   }
 
   function toast(msg, type = 'info') {
@@ -330,16 +336,30 @@ const App = (() => {
     const canEmployees = Modules.canAccess(user, 'employees.view');
     const canRecruitment = Modules.canAccess(user, 'recruitment.pipeline');
 
-    const [leaves, employees, jobs, candidates, payrolls, taxForms, performance, templates, dashboard] = await Promise.all([
+    const normalizedRole = normalizeRole(user?.role);
+    const canManageGrievances = ['admin', 'hr_manager', 'hr'].includes(normalizedRole);
+
+    let timesheetError = '';
+    const loadTodayTimesheet = API.getTodayTimesheet().catch((error) => {
+      timesheetError = error.message || 'Unable to load your timesheet.';
+      console.error('Unable to load today\'s timesheet:', error);
+      return null;
+    });
+    const [leaves, employees, jobs, candidates, payrolls, grievances, taxForms, performance, templates, dashboard, timesheet, timesheetHistory, teamTimesheets, allTimesheets] = await Promise.all([
       API.getLeaves(),
       canEmployees ? API.getEmployees() : Promise.resolve(null),
       API.getJobs(),
       API.getCandidates(), // Fetch candidates for everyone; backend handles filtering
       API.getPayrolls(), // Fetch payrolls for everyone; backend handles filtering
+      canManageGrievances ? API.getGrievances() : API.getMyGrievances(),
       API.getTaxForms(), // Fetch tax forms for everyone; backend handles filtering
       API.getPerformance(),
       API.getPerformanceTemplates(),
-      API.getDashboard()
+      API.getDashboard(),
+      loadTodayTimesheet,
+      API.getTimesheetHistory(30),
+      ['reporting_manager', 'admin', 'hr_manager'].includes(normalizedRole) ? API.getTeamTimesheets() : Promise.resolve(null),
+      ['admin', 'hr_manager'].includes(normalizedRole) ? API.getTeamTimesheets() : Promise.resolve(null)
     ]);
     if (leaves) Store.setLeaves(leaves);
     if (dashboard) Store.setDashboard(dashboard);
@@ -347,9 +367,15 @@ const App = (() => {
     if (jobs) Store.setJobs(jobs);
     if (candidates) Store.setCandidates(candidates);
     if (payrolls) Store.setPayrolls(payrolls);
+    if (grievances) Store.setGrievances(grievances);
     if (taxForms) Store.setTaxForms(taxForms);
     if (performance) Store.setPerformance(performance);
     if (templates) Store.setPerfTemplates(templates);
+    Store.setTimesheetError(timesheetError);
+    if (timesheet) Store.setTimesheet(timesheet);
+    if (timesheetHistory) Store.setTimesheetHistory(timesheetHistory);
+    if (teamTimesheets) Store.setTeamTimesheets(teamTimesheets);
+    if (allTimesheets) Store.setAllTimesheets(allTimesheets);
   }
 
   function render() {
@@ -363,8 +389,72 @@ const App = (() => {
         document.getElementById('page-content').innerHTML =
           Modules.render(currentPage, user, getSubPage(currentPage, user));
         bindPageEvents(user);
+        // Check for missed punch-out on timesheet page
+        if (currentPage === 'timesheet') {
+          checkAndShowMissedPunchOut();
+        }
       }
     });
+  }
+
+  function navigate(page, subPage) {
+    currentPage = page;
+    if (subPage) currentSubPage[page] = subPage;
+    render();
+  }
+
+  async function checkAndShowMissedPunchOut() {
+    try {
+      const result = await API.checkMissedPunchOut();
+      if (result && result.hasMissedPunchOut && result.timesheet) {
+        const ts = result.timesheet;
+        const formatTime = (t) => t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
+        openModal('⚠️ Missed Punch Out', `
+          <div style="padding: 1rem; background: #fef08a; border-left: 4px solid #eab308; border-radius: 0.375rem; margin-bottom: 1.5rem;">
+            <p style="margin: 0; font-weight: 600; color: #78350f;">You forgot to punch out on ${ts.date}!</p>
+            <p style="margin: 0.5rem 0 0 0; color: #92400e; font-size: 0.9rem;">Please enter the punch-out time below to resolve this.</p>
+          </div>
+          <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.375rem; margin-bottom: 1.5rem;">
+            <p class="form-hint">Previous Timesheet Date</p>
+            <p style="font-weight: 600; margin: 0.5rem 0 0 0;">${ts.date}</p>
+            <p class="form-hint" style="margin-top: 1rem;">Punch In Time</p>
+            <p style="font-weight: 600; margin: 0.5rem 0 0 0;">${formatTime(ts.punchInTime)}</p>
+          </div>
+          <div class="form-group">
+            <label for="missed-punch-out-time">Enter Punch Out Time <span class="required">*</span></label>
+            <p class="form-hint">Enter the time you actually punched out on ${ts.date}</p>
+            <input id="missed-punch-out-time" type="datetime-local" required />
+          </div>
+        `, `
+          <button class="btn btn-secondary" id="missed-punch-cancel">Cancel</button>
+          <button class="btn btn-primary" id="missed-punch-submit">Resolve Punch Out</button>
+        `);
+
+        document.getElementById('missed-punch-cancel').onclick = () => {
+          closeModal();
+        };
+
+        document.getElementById('missed-punch-submit').onclick = async () => {
+          const timeInput = document.getElementById('missed-punch-out-time').value;
+          if (!timeInput) {
+            toast('Please enter a punch-out time', 'error');
+            return;
+          }
+          try {
+            const res = await API.resolveMissedPunchOut(ts._id, { missedPunchOutTime: timeInput });
+            if (res) {
+              toast('Missed punch-out resolved. You can now view, edit, and submit your previous timesheet.', 'success');
+              closeModal();
+              render();
+            }
+          } catch (e) {
+            toast(e.message, 'error');
+          }
+        };
+      }
+    } catch (e) {
+      // Silently handle; API might not be available
+    }
   }
 
   function navigate(page, subPage) {
@@ -1608,7 +1698,147 @@ const App = (() => {
     downloadWithAuth(url, filename);
   }
 
+  function showRaiseGrievanceForm(user) {
+    openModal('Raise Grievance', `
+      <form id="grievance-form">
+        <div class="form-group">
+          <label>Title <span class="required">*</span></label>
+          <input type="text" id="grievance-title" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category <span class="required">*</span></label>
+            <select id="grievance-category" required>
+              <option value="" disabled selected hidden>Select category</option>
+              <option>Payroll</option><option>Leave</option><option>Attendance</option><option>Workplace Harassment</option><option>Discrimination</option><option>Manager Conduct</option><option>Workplace Safety</option><option>Policy Violation</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Priority <span class="required">*</span></label>
+            <select id="grievance-priority" required>
+              <option value="" disabled selected hidden>Select priority</option>
+              <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description <span class="required">*</span></label>
+          <textarea id="grievance-description" rows="4" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Attachment</label>
+          <input type="file" id="grievance-attachment" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+        </div>
+      </form>
+    `, `
+      <button class="btn btn-secondary" id="grievance-cancel" type="button">Cancel</button>
+      <button class="btn btn-primary" id="grievance-submit" type="button">Submit</button>
+    `);
+
+    document.getElementById('grievance-cancel').addEventListener('click', closeModal);
+    document.getElementById('grievance-submit').addEventListener('click', async () => {
+      const title = document.getElementById('grievance-title').value.trim();
+      const category = document.getElementById('grievance-category').value;
+      const priority = document.getElementById('grievance-priority').value;
+      const description = document.getElementById('grievance-description').value.trim();
+      const file = document.getElementById('grievance-attachment').files?.[0];
+
+      if (!title || !category || !priority || !description) {
+        toast('Please fill in all required fields', 'error');
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append('title', title);
+      fd.append('category', category);
+      fd.append('priority', priority);
+      fd.append('description', description);
+      if (file) fd.append('attachment', file);
+
+      try {
+        const res = await API.createGrievance(fd);
+        if (res) {
+          Store.addGrievance({ ...res, id: res.id || res._id, grievanceNumber: res.grievanceNumber });
+          closeModal();
+          toast('Grievance submitted successfully', 'success');
+          render();
+        }
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    });
+  }
+
+  async function showGrievanceDetail(grievanceId) {
+    const grievance = Store.getGrievanceById(grievanceId) || Store.getGrievances().find(g => g.id === grievanceId || g._id === grievanceId);
+    if (!grievance) return;
+
+    const isHr = Modules.canAccess(Store.getUser(), 'employees.view');
+    openModal(`Grievance Details — ${grievance.title}`, `
+      <div class="detail-section">
+        <div class="detail-grid">
+          ${detailRow('Grievance #', grievance.grievanceNumber || '—')}
+          ${detailRow('Employee Name', grievance.employeeName || grievance.employeeId || '—')}
+          ${detailRow('Title', grievance.title)}
+          ${detailRow('Category', grievance.category)}
+          ${detailRow('Priority', grievance.priority)}
+          ${detailRow('Description', grievance.description)}
+          ${detailRow('Submission Date', Modules.formatDate(grievance.createdAt))}
+          ${detailRow('Current Status', grievance.status)}
+          ${detailRow('Attachment', grievance.attachment ? `<a href="${grievance.attachment}" target="_blank">View attachment</a>` : '—')}
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="form-group">
+          <label>HR Notes</label>
+          <textarea id="grievance-notes" rows="3">${escAttr(grievance.hrNotes || '')}</textarea>
+        </div>
+        ${isHr ? `
+          <div class="form-group">
+            <label>Status</label>
+            <select id="grievance-status">
+              <option ${grievance.status === 'Submitted' ? 'selected' : ''}>Submitted</option>
+              <option ${grievance.status === 'Acknowledged' ? 'selected' : ''}>Acknowledged</option>
+              <option ${grievance.status === 'Under Review' ? 'selected' : ''}>Under Review</option>
+              <option ${grievance.status === 'Need More Information' ? 'selected' : ''}>Need More Information</option>
+              <option ${grievance.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+              <option ${grievance.status === 'Closed' ? 'selected' : ''}>Closed</option>
+            </select>
+          </div>
+        ` : ''}
+      </div>
+    `, `
+      <button class="btn btn-secondary" id="grievance-detail-close" type="button">Close</button>
+      ${isHr ? '<button class="btn btn-primary" id="grievance-save" type="button">Save</button>' : ''}
+    `);
+
+    document.getElementById('grievance-detail-close').addEventListener('click', closeModal);
+    document.getElementById('grievance-save')?.addEventListener('click', async () => {
+      const status = document.getElementById('grievance-status').value;
+      const notes = document.getElementById('grievance-notes').value.trim();
+      try {
+        await API.updateGrievanceStatus(grievance.id || grievance._id, { status });
+        await API.updateGrievanceNotes(grievance.id || grievance._id, { hrNotes: notes });
+        Store.updateGrievance(grievance.id || grievance._id, { status, hrNotes: notes });
+        closeModal();
+        toast('Grievance updated successfully', 'success');
+        render();
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    });
+  }
+
   function bindPageEvents(user) {
+    document.querySelectorAll('[data-timesheet-view]').forEach((button) => {
+      button.addEventListener('click', () => {
+        currentSubPage.timesheet = button.dataset.timesheetView;
+        document.getElementById('page-content').innerHTML =
+          Modules.render('timesheet', user, currentSubPage.timesheet);
+        bindPageEvents(user);
+      });
+    });
+
     document.getElementById('sub-tab-select')?.addEventListener('change', (e) => {
       const val = e.target.value;
       const opt = e.target.selectedOptions[0];
@@ -1697,6 +1927,11 @@ const App = (() => {
       btn.addEventListener('click', () => downloadPayslip(btn.dataset.downloadPayslip));
     });
 
+    document.getElementById('btn-raise-grievance')?.addEventListener('click', () => showRaiseGrievanceForm(user));
+    document.querySelectorAll('[data-view-grievance]').forEach(btn => {
+      btn.addEventListener('click', () => showGrievanceDetail(btn.dataset.viewGrievance));
+    });
+
     document.getElementById('btn-onboard')?.addEventListener('click', () => showOnboardForm());
 
     document.querySelectorAll('[data-view-employee]').forEach(btn => {
@@ -1717,6 +1952,94 @@ const App = (() => {
         Number(btn.dataset.docIndex),
         btn.textContent.replace(/^📥\s*/, '').trim()
       ));
+    });
+
+    document.getElementById('btn-add-candidate')?.addEventListener('click', () => {
+      const req = '<span class="required">*</span>';
+      const jobs = Store.getJobs();
+      const jobOptions = jobs.length
+        ? jobs.map(j => `<option value="${escAttr(j.title)}">${escAttr(j.title)} (${escAttr(j.department)})</option>`).join('')
+        : '<option value="" disabled>No jobs available — post a job first</option>';
+
+      openModal('Add Candidate', `
+        <form id="add-candidate-form">
+          <div class="form-group">
+            <label>Candidate Name ${req}</label>
+            <input type="text" id="cand-name" placeholder="Full name" required />
+          </div>
+          <div class="form-group">
+            <label>Position / Job ${req}</label>
+            <select id="cand-job" required>
+              <option value="" disabled selected>Select a job posting</option>
+              ${jobOptions}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Stage</label>
+            <select id="cand-stage">
+              <option value="Screening" selected>Screening</option>
+              <option value="Interview">Interview</option>
+              <option value="Offer">Offer</option>
+              <option value="Hired">Hired</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Applied On ${req}</label>
+            <input type="date" id="cand-date" value="${new Date().toISOString().split('T')[0]}" required />
+          </div>
+          <div class="form-group">
+            <label>Resume (PDF)</label>
+            <p class="form-hint">Upload the candidate's resume as a PDF (optional).</p>
+            <input type="file" id="cand-resume" accept=".pdf,application/pdf" />
+            <div id="cand-resume-preview" class="selected-docs"></div>
+          </div>
+        </form>
+      `, `
+        <button class="btn btn-secondary" id="cand-cancel" type="button">Cancel</button>
+        <button class="btn btn-primary" id="cand-save" type="button">Add Candidate</button>
+      `);
+
+      document.getElementById('cand-cancel').addEventListener('click', closeModal);
+
+      document.getElementById('cand-resume')?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        const el = document.getElementById('cand-resume-preview');
+        if (el) el.innerHTML = file ? `<span class="doc-chip">📎 ${file.name}</span>` : '';
+      });
+
+      document.getElementById('cand-save').addEventListener('click', async () => {
+        const name = document.getElementById('cand-name').value.trim();
+        const job = document.getElementById('cand-job').value;
+        const stage = document.getElementById('cand-stage').value;
+        const appliedOn = document.getElementById('cand-date').value;
+        const resumeFile = document.getElementById('cand-resume')?.files?.[0];
+
+        if (!name) { toast('Candidate name is required', 'error'); return; }
+        if (!job) { toast('Please select a job posting', 'error'); return; }
+        if (!appliedOn) { toast('Applied On date is required', 'error'); return; }
+        if (resumeFile && !isPdfFile(resumeFile)) { toast('Resume must be a PDF file', 'error'); return; }
+
+        const fd = new FormData();
+        fd.append('name', name);
+        fd.append('job', job);
+        fd.append('stage', stage);
+        fd.append('appliedOn', appliedOn);
+        if (resumeFile) fd.append('file', resumeFile);
+
+        try {
+          const res = await API.createCandidateWithResume(fd);
+          if (!res) throw new Error('No response from server');
+          Store.addCandidate(res);
+          closeModal();
+          toast('Candidate added successfully', 'success');
+          document.getElementById('page-content').innerHTML =
+            Modules.render(currentPage, user, getSubPage(currentPage, user));
+          bindPageEvents(user);
+        } catch (e) {
+          toast(`Failed to add candidate: ${e.message}`, 'error');
+        }
+      });
     });
 
     document.getElementById('btn-post-job')?.addEventListener('click', () => {
@@ -2117,6 +2440,305 @@ const App = (() => {
         }
       };
     });
+
+    // Timesheet event handlers
+    document.getElementById('btn-punch-in')?.addEventListener('click', async () => {
+      try {
+        const res = await API.punchIn();
+        if (res) {
+          Store.setTimesheet(res);
+          toast('Punched in successfully', 'success');
+          render();
+        }
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    });
+
+    document.getElementById('btn-punch-out')?.addEventListener('click', async () => {
+      try {
+        const res = await API.punchOut();
+        if (res) {
+          Store.setTimesheet(res);
+          toast('Punched out successfully', 'success');
+          render();
+        }
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    });
+
+    document.getElementById('btn-add-activity')?.addEventListener('click', () => {
+      openModal('Add Activity', `
+        <form id="add-activity-form">
+          <div class="form-group">
+            <label for="activity-input">Activity <span class="required">*</span></label>
+            <textarea id="activity-input" placeholder="e.g. Designed Timesheet UI" rows="2" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="duration-input">Duration / Hours Spent <span class="required">*</span></label>
+            <input id="duration-input" type="number" step="0.5" min="0.5" placeholder="e.g. 2" required />
+          </div>
+        </form>
+      `, `
+        <button class="btn btn-secondary" id="activity-cancel">Cancel</button>
+        <button class="btn btn-primary" id="activity-save">Add Activity</button>
+      `);
+
+      document.getElementById('activity-cancel').onclick = closeModal;
+      document.getElementById('activity-save').onclick = async () => {
+        const activity = document.getElementById('activity-input').value.trim();
+        const duration = parseFloat(document.getElementById('duration-input').value);
+        if (!activity || !duration) {
+          toast('Both activity and duration are required', 'error');
+          return;
+        }
+        try {
+          const res = await API.addActivity({ activity, duration });
+          if (res) {
+            Store.setTimesheet(res);
+            toast('Activity added', 'success');
+            closeModal();
+            render();
+          }
+        } catch (e) {
+          toast(e.message, 'error');
+        }
+      };
+    });
+
+    document.querySelectorAll('[data-edit-activity]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const index = parseInt(btn.dataset.editActivity, 10);
+        const ts = Store.getTimesheet();
+        if (!ts || !ts.activities || !ts.activities[index]) {
+          toast('Activity not found', 'error');
+          return;
+        }
+        const act = ts.activities[index];
+        openModal('Edit Activity', `
+          <form id="edit-activity-form">
+            <div class="form-group">
+              <label for="activity-input-e">Activity <span class="required">*</span></label>
+              <textarea id="activity-input-e" placeholder="e.g. Designed Timesheet UI" rows="2" required>${act.activity}</textarea>
+            </div>
+            <div class="form-group">
+              <label for="duration-input-e">Duration / Hours Spent <span class="required">*</span></label>
+              <input id="duration-input-e" type="number" step="0.5" min="0.5" placeholder="e.g. 2" value="${act.duration}" required />
+            </div>
+          </form>
+        `, `
+          <button class="btn btn-secondary" id="activity-cancel-e">Cancel</button>
+          <button class="btn btn-primary" id="activity-save-e">Update Activity</button>
+        `);
+
+        document.getElementById('activity-cancel-e').onclick = closeModal;
+        document.getElementById('activity-save-e').onclick = async () => {
+          const activity = document.getElementById('activity-input-e').value.trim();
+          const duration = parseFloat(document.getElementById('duration-input-e').value);
+          if (!activity || !duration) {
+            toast('Both activity and duration are required', 'error');
+            return;
+          }
+          try {
+            const res = await API.editActivity(index, { activity, duration });
+            if (res) {
+              Store.setTimesheet(res);
+              toast('Activity updated', 'success');
+              closeModal();
+              render();
+            }
+          } catch (e) {
+            toast(e.message, 'error');
+          }
+        };
+      });
+    });
+
+    document.querySelectorAll('[data-delete-activity]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this activity?')) return;
+        const index = parseInt(btn.dataset.deleteActivity, 10);
+        try {
+          const res = await API.deleteActivity(index);
+          if (res) {
+            Store.setTimesheet(res);
+            toast('Activity deleted', 'success');
+            render();
+          }
+        } catch (e) {
+          toast(e.message, 'error');
+        }
+      });
+    });
+
+    document.getElementById('btn-submit-timesheet')?.addEventListener('click', async () => {
+      if (!confirm('Submit timesheet? You will not be able to make changes after submission.')) return;
+      try {
+        const res = await API.submitTimesheet();
+        if (res) {
+          Store.setTimesheet(res);
+          toast('Timesheet submitted successfully', 'success');
+          render();
+        }
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    });
+
+    document.querySelectorAll('[data-view-team-timesheet]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const employeeId = btn.dataset.viewTeamTimesheet;
+        const today = new Date().toISOString().split('T')[0];
+        try {
+          const ts = await API.getTeamTimesheetDetail(employeeId, today);
+          if (ts) {
+            const formatTime = (t) => t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
+            const formatDuration = (ms) => {
+              if (!ms) return '0h';
+              const hours = Math.floor(ms / 3600);
+              const minutes = Math.floor((ms % 3600) / 60);
+              return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+            };
+            openModal(`Timesheet - ${ts.employeeName}`, `
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                  <p class="form-hint">Punch In</p>
+                  <p style="font-size: 1rem; font-weight: 500;">${formatTime(ts.punchInTime)}</p>
+                </div>
+                <div>
+                  <p class="form-hint">Punch Out</p>
+                  <p style="font-size: 1rem; font-weight: 500;">${formatTime(ts.punchOutTime)}</p>
+                </div>
+              </div>
+              <div style="padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.375rem; margin-bottom: 1rem;">
+                <p class="form-hint">Total Punched-In Duration</p>
+                <p style="font-size: 1.1rem; font-weight: 600;">${formatDuration(ts.punchedInDuration * 3600)}</p>
+              </div>
+              ${ts.activities && ts.activities.length > 0 ? `
+                <h4 style="margin-bottom: 0.75rem;">Daily Activities</h4>
+                <div class="table-responsive">
+                  <table class="table" style="margin-bottom: 1rem;">
+                    <thead>
+                      <tr>
+                        <th>Activity</th>
+                        <th>Duration</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${ts.activities.map(act => `
+                        <tr>
+                          <td>${act.activity}</td>
+                          <td>${act.duration}h</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              ` : ''}
+              <div style="padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.375rem;">
+                <p class="form-hint">Total Activity Hours</p>
+                <p style="font-size: 1.1rem; font-weight: 600;">${ts.totalActivityHours || 0}h</p>
+              </div>
+            `, '<button class="btn btn-secondary" onclick="closeModal()" type="button">Close</button>');
+            document.querySelectorAll('[data-view-employee-timesheet-detail]').forEach((detailButton) => {
+              detailButton.addEventListener('click', async () => {
+                try {
+                  const timesheet = await API.getEmployeeTimesheetDetail(
+                    detailButton.dataset.viewEmployeeTimesheetDetail,
+                    detailButton.dataset.timesheetDate,
+                  );
+                  if (!timesheet) return;
+                  const time = (value) => value ? new Date(value).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
+                  openModal(`Daily Timesheet - ${timesheet.employeeName || 'Employee'}`, `
+                    <div class="detail-grid">
+                      ${detailRow('Department', timesheet.department || '—')}
+                      ${detailRow('Date', timesheet.date)}
+                      ${detailRow('Punch In', time(timesheet.punchInTime))}
+                      ${detailRow('Punch Out', time(timesheet.punchOutTime))}
+                      ${detailRow('Total Punched-In Duration', `${timesheet.punchedInDuration || 0}h`)}
+                      ${detailRow('Total Activity Hours', `${timesheet.totalActivityHours || 0}h`)}
+                      ${detailRow('Status', timesheet.status)}
+                      ${timesheet.punchOutSource === 'Manual' ? detailRow('Punch Out', 'Manually Corrected') : ''}
+                    </div>
+                    <div class="table-responsive"><table class="data-table"><thead><tr><th>Activity</th><th>Duration / Hours Spent</th></tr></thead><tbody>
+                      ${(timesheet.activities || []).map((activity) => `<tr><td>${activity.activity}</td><td>${activity.duration}h</td></tr>`).join('') || '<tr><td colspan="2">No activities recorded.</td></tr>'}
+                    </tbody></table></div>
+                  `, '<button class="btn btn-secondary" onclick="closeModal()" type="button">Close</button>');
+                } catch (error) {
+                  toast(error.message, 'error');
+                }
+              });
+            });
+          }
+        } catch (e) {
+          toast(e.message, 'error');
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-view-employee-timesheet-history]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const employeeId = btn.dataset.viewEmployeeTimesheetHistory;
+        try {
+          const result = await API.getEmployeeTimesheetHistory(employeeId, null, null, 1, 30);
+          if (result && result.data) {
+            const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '—';
+            const formatTime = (t) => t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
+            const formatDuration = (ms) => {
+              if (!ms) return '0h';
+              const hours = Math.floor(ms / 3600);
+              const minutes = Math.floor((ms % 3600) / 60);
+              return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+            };
+            openModal(`Timesheet History - ${result.data[0]?.employeeName || 'Employee'}`, `
+              <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Punch In</th>
+                      <th>Punch Out</th>
+                      <th>Duration</th>
+                      <th>Activity Hours</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${result.data.map(ts => `
+                      <tr>
+                        <td>${ts.date}</td>
+                        <td>${formatTime(ts.punchInTime)}</td>
+                        <td>${formatTime(ts.punchOutTime)}</td>
+                        <td>${ts.punchedInDuration ? formatDuration(ts.punchedInDuration * 3600) : '—'}</td>
+                        <td>${ts.totalActivityHours || 0}h</td>
+                        <td>${ts.status || '—'}</td>
+                        <td><button class="btn btn-secondary btn-sm" data-view-employee-timesheet-detail="${employeeId}" data-timesheet-date="${ts.date}" type="button">View</button></td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `, '<button class="btn btn-secondary" onclick="closeModal()" type="button">Close</button>');
+          }
+        } catch (e) {
+          toast(e.message, 'error');
+        }
+      });
+    });
+
+    const searchTimesheetInput = document.getElementById('search-employee-ts');
+    if (searchTimesheetInput) {
+      searchTimesheetInput.addEventListener('keyup', () => {
+        const query = searchTimesheetInput.value.toLowerCase();
+        const rows = document.querySelectorAll('#timesheet-management-table tr');
+        rows.forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = text.includes(query) ? '' : 'none';
+        });
+      });
+    }
   }
   
   function bindEvents() { // Global events, not page-specific
